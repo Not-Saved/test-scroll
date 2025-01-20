@@ -13,6 +13,7 @@ let currentValue = 50;
 
 const frameData1: number[] = [];
 const frameData22: number[] = [];
+const frameData11: number[] = [];
 
 const frameData2: number[] = [];
 const frameData3: number[] = [];
@@ -95,14 +96,19 @@ class Spring {
 		return this.position;
 	}
 }
-const appDiv = document.getElementById('app');
+const appDiv = document.getElementById('app')!;
 if (appDiv) {
 	const words = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(100);
 	appDiv.innerText = words;
 }
 
-const value = new SecondOrderDynamics(5, 1.2, 1, (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
-const spring = new Spring(310, 30, (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+const value = new SecondOrderDynamics(2, 1, 1, (window.scrollY / (appDiv.clientHeight - window.innerHeight)) * 100);
+const value2 = new SecondOrderDynamics(2, 1, 1, (window.scrollY / (appDiv.clientHeight - window.innerHeight)) * 100);
+
+const scrollDynamic = new SecondOrderDynamics(2, 1, 1, (window.scrollY / (appDiv.clientHeight - window.innerHeight)) * 100);
+const scrollDynamic2 = new SecondOrderDynamics(2, 1, 1, (window.scrollY / (appDiv.clientHeight - window.innerHeight)) * 100);
+
+const spring = new Spring(310, 30, (window.scrollY / (appDiv.clientHeight - window.innerHeight)) * 100);
 
 
 
@@ -140,21 +146,21 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 window.addEventListener('scroll', () => {
-	console.log(window.scrollY - scrollY2)
 	scrollY2 = window.scrollY;
 
 })
 
 window.addEventListener('wheel', (event) => {
+
 	const newScroll = scrollY + event.deltaY;
-	scrollY = clamp(newScroll, 0, document.body.scrollHeight - window.innerHeight);
+	scrollY = clamp(newScroll, 0, appDiv.clientHeight - window.innerHeight);
 })
 
 function generateScrollValue() {
-	return (scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+	return (scrollY / (appDiv.clientHeight - window.innerHeight)) * 100;
 }
 function generateScrollValue2() {
-	return (scrollY2 / (document.body.scrollHeight - window.innerHeight)) * 100;
+	return (scrollY2 / (appDiv.clientHeight - window.innerHeight)) * 100;
 }
 
 
@@ -183,9 +189,14 @@ function drawFrame(currentTime: number) {
 	// Generate lerp values based on the blue function
 	const lerpValue = value.update(deltaTime / 1000, newScrollValue);
 	frameData1.push(lerpValue);
+	if (frameData1.length > canvas.width / 4) frameData1.shift();
+
+	const lerpValue1 = value2.update(deltaTime / 1000, lerpValue);
+	frameData11.push(lerpValue1);
+	if (frameData11.length > canvas.width / 4) frameData11.shift();
 
 	// Remove the least recent values if arrays are longer than canvas width
-	if (frameData1.length > canvas.width / 4) frameData1.shift();
+
 
 	// Update spring value
 	spring.setTarget(newScrollValue);
@@ -196,9 +207,16 @@ function drawFrame(currentTime: number) {
 	if (frameData3.length > canvas.width / 4) frameData3.shift();
 
 	drawGraph(frameData1, 'blue', true);
+	drawGraph(frameData11, 'green', true);
+
 	drawGraph(frameData2, 'yellow', true); // Draw as rectangles
 	drawGraph(frameData22, 'red', true); // Draw as rectangles
 	//drawGraph(frameData3, 'green');
+
+	const scrollYDyn = scrollDynamic.update(deltaTime / 1000, scrollY);
+	const scrollYDyn2 = scrollDynamic2.update(deltaTime / 1000, scrollYDyn);
+
+	appDiv!.style.transform = `translateY(${-scrollYDyn2}px)`;
 
 	requestAnimationFrame(drawFrame);
 }
